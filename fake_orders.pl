@@ -10,11 +10,10 @@ my $customers = load_file($customers_file);
 my $sales = load_file($sales_file);
 my $parts = load_file($parts_file);
 
-my $ordernumber=0;
+my @orders;
 for my $sp (@$sales) {
-    my $n_orders = int rand(10)+1;
+    my $n_orders = int rand(100)+1;
     for (my $i=0;$i<$n_orders;$i++) {
-        $ordernumber++;
         my $tot=0;
         my $c = int rand(@$customers);
         my $n_parts = rand(5)+1;
@@ -27,11 +26,26 @@ for my $sp (@$sales) {
             $price =~ s/\$//;
             $tot += $price*$q;
         }
-        print join("\t",$ordernumber,rand_date(min => '1978-9-21', max => 'now'),$sp->{name},$customers->[$c]{name},join(",",@pq),$tot),"\n";
+        my $orderdate = rand_date(min => '2002-9-21', max => 'now');
+        push @orders, [$orderdate,$sp->{name},$customers->[$c]{name},join(",",@pq),$tot];
     }
 }
 
+my $i=0;
+print join ("\t", qw(order_number order_date sales_associate customer products/quantities total_sale)),"\n";
+for my $order (sort by_date @orders) {
+    $i++;
+    my $orderNumber = sprintf("CHA-CHING-%07d", $i);
+    print join ("\t", $orderNumber, @$order), "\n";
+}
+
 exit;
+
+sub by_date {
+    my @aYMD = $a->[0] =~ m/(\d+)-(\d+)-(\d+)/;
+    my @bYMD = $b->[0] =~ m/(\d+)-(\d+)-(\d+)/;
+    $aYMD[0] <=> $bYMD[0] or $aYMD[1] <=> $bYMD[1] or $aYMD[2] <=> $bYMD[2];
+}
 
 sub load_file {
     my $file = shift;
