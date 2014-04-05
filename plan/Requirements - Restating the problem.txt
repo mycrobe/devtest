@@ -1,0 +1,63 @@
+Database for factory
+
+DB should store categories, which has properties:
+  name
+
+DB should store parts for sale:
+  a unique part number, 
+  original part number,
+  category,
+  description (very long), 
+  and the quantity we have in stock.
+
+DB should store customers:
+  name, 
+  address, 
+  phone number,
+  email
+
+DB should store orders:
+  unique order number,
+  customer,
+  date
+
+DB should store parts_ordered:
+  order,
+  part,
+  quantity
+
+Each table should use an integer primary key to allow for changes to unique identifers
+
+
+Load data into database
+
+Populate parts table from parts.txt
+  Handle potential unique id collisions 
+    => log to report file; modify to create new part number
+
+Populate customers table from customers.txt	
+
+Populate orders and parts_ordered tables from orders.txt
+  Parse out parts_ordered records from "products/quantities" column.
+  Handle possibility of non-unique part numbers
+    => Step one, report issues during database load and ignore those orders
+    => Step two, attempt to use total price to reason which products were actually ordered
+      => only handle very simplest cases (e.g. one duplicate part per order)
+
+
+
+Web/CSV reports 
+
+1. Parts in Stock
+List all parts with stock > 0, truncating descriptions
+
+2. Customers
+List all customers
+
+3. Orders report
+List orders, including customer name/phone, and part numbers/quantity.
+
+
+CRUD user interface
+
+Allow data to be edited on web.
