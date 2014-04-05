@@ -25,4 +25,5 @@ Rough plan after 45 minutes of googling:
 8. CRUD UI
 
 ## Notes
-+ Use denormalized "total_price" to attempt to disambiguate collisions of part numbers? 
++ Use denormalized "total_price" to attempt to disambiguate collisions of part numbers?
++ Interesting db design issue implied by supplied "sales_force.txt" and "customers.txt" files, but sales force is not mentioned in requirements doc. I'd probably rename table to "people" and have a 1:1 "foreign key is primary key" mapping to a "salespeople" table with employee/sales info. (This is not reflected in the sketch data model correctly.)
