@@ -27,3 +27,8 @@ Rough plan after 45 minutes of googling:
 ## Notes
 + Use denormalized "total_price" to attempt to disambiguate collisions of part numbers?
 + Interesting db design issue implied by supplied "sales_force.txt" and "customers.txt" files, but sales force is not mentioned in requirements doc. I'd probably rename table to "people" and have a 1:1 "foreign key is primary key" mapping to a "salespeople" table with employee/sales info. (This is not reflected in the sketch data model correctly.)
+
+## Schema implementation notes
++ For simplicity, just one name field for full name
++ Could have some kind of part >-< alias relationship for part numbers instead of parts.original_part_number column
++ Could/should put address in separate table and validate states and suchlike.
