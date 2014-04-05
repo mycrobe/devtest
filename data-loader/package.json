@@ -1,0 +1,9 @@
+{
+    "name": "factory-data-loader",
+    "description": "Parse supplied files, post to REST server.",
+    "version": "0.0.1",
+    "dependencies": {
+        "node-rest-client": "0.8.x",
+        "csv": "0.3.x"
+    }
+}
