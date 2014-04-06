@@ -2,19 +2,12 @@ var express = require('express');
 var app = express();
 
 var mysql = require('mysql');
-var pool = mysql.createPool({
+var connection = mysql.createConnection({
     host: 'localhost',
     user: 'factory',
     password: 'fact0ry',
     database: 'factory'
 });
-
-//var Q = require("q");
-//var promisedQuery = function (connection, query, queryParams) {
-//    var deferred = Q.defer();
-//    connection.query(query, queryParams, deferred.resolve);
-//    return deferred.promise;
-//};
 
 // to parse POSTed bodies, whether JSON, urlencoded or multipart
 app.use(express.bodyParser());
@@ -77,7 +70,7 @@ function handleError(type, err, res, userError) {
  *                      results.
  */
 function doQueryAndRespond(res, query, queryParams, getResponseJsonFromSqlResults) {
-    doQuery(res, query, queryParams, function (err, rows, fields) {
+    connection.query(query, queryParams, function (err, rows, fields) {
         if (!handleError("QUERY", err, res, true)) {
             res.type('application/json');
             res.send({
@@ -86,26 +79,6 @@ function doQueryAndRespond(res, query, queryParams, getResponseJsonFromSqlResult
                 json: getResponseJsonFromSqlResults(rows, fields)
             });
         }
-    });
-}
-
-/**
- * Abstraction of logic used when querying the database from within a route. It checks for
- * errors connecting to the database and --if there were no errors-- calls the provided callback.
- * Errors are returned nicely to the client so it's important not to write to the response object
- * in the callback if the error object is not null.
- * @param res the response object
- * @param query the query, in string format
- * @param queryParams query parameters. The required format depends on the query string, but can be a scalar,
- *                      or an object. Maybe also an array but I haven't tested that.
- * @param callback the function to call with the results. (This is passed directly to connection.query)
- */
-function doQuery(res, query, queryParams, callback) {
-    pool.getConnection(function (err, connection) {
-        if (!handleError("CONNECTION", err, res)) {
-            connection.query(query, queryParams, callback);
-        }
-        connection.release();
     });
 }
 
@@ -136,73 +109,56 @@ app.get('/:table/:id?', function (req, res) {
 
 app.post('/orders', function (req, res) {
     var orderId;
-    pool.getConnection(function (err, connection) {
-        if (handleError('CONNECTION', err, res)) {
-            return
-        }
-        function rollbackOnError(err, res) {
-            if (err) {
-                connection.rollback(function (e, rows) {
-                    if(e) {
-                        console.log("Could not roll back :" + e.message );
-                    }
-                    else {
-                        console.log("Rolled back. Affected rows: " + rows.affectedRows);
-                    }
-                });
-            }
-            return handleError('TRANSACTION-QUERY', err, res);
-        }
-        function notSingleResult(rows, res) {
-            
-        }
-
-//        try {
-            connection.beginTransaction(function (err) {
-                if(rollbackOnError(err, res)) { return }
-                var orderInfo = req.body,
-                    orderQuery = 'insert into orders(order_number, order_date, total_sale, customer_id) select ?, ?, ?, id from people where name = ?',
-                    partsOrderedQuery = 'insert into parts_ordered(order_id, quantity, part_id) select ?, ?, id from parts where part_number = ?',
-                    orderParams = [orderInfo.order_number, orderInfo.order_date, orderInfo.total_sale, orderInfo.customer],
-                    partsOrdered = orderInfo.parts_ordered;
-
-                connection.query(orderQuery, orderParams, function (err, rows) {
-                    connection.release();
-                    if(rollbackOnError(err, res)) { return }
-                    orderId = rows.insertId;
-
-                    for (var i = 0; i < partsOrdered.length; i++) {
-                        var partOrdered = partsOrdered[i],
-                            partParams = [orderId, partOrdered.quantity, partOrdered.part];
-
-                        connection.query(partsOrderedQuery, partParams, function (err, rows) {
-                                rollbackOnError(err, res);
-                            });
-                    }
-
-                    connection.commit(function(err, rows) {
-                        if(rollbackOnError(err, res)) { return }
-                        try {
-                            res.type('application/json');
-                            res.send({
-                                result: 'success',
-                                err: '',
-                                json: {'id': orderId}
-                            });
-
-                        } catch (e) {
-                            console.error('Response probably already sent for error');
-                        }
-                    })
-                });
-//                });
+    function rollbackOnError(err, res) {
+        if (err) {
+            connection.rollback(function (e, rows) {
+                if(e) {
+                    console.log("Could not roll back :" + e.message );
+                }
+                else {
+                    console.log("Rolled back. Affected rows: " + rows.affectedRows);
+                }
             });
-            connection.release();
-//        } catch (err) {
-//            handleError('TRANSACTION', err, res);
-//        } finally {
-//            connection.release();
-//        }
+        }
+        return handleError('TRANSACTION-QUERY', err, res);
+    }
+
+    connection.beginTransaction(function (err) {
+        if(rollbackOnError(err, res)) { return }
+        var orderInfo = req.body,
+            orderQuery = 'insert into orders(order_number, order_date, total_sale, customer_id) select ?, ?, ?, id from people where name = ?',
+            partsOrderedQuery = 'insert into parts_ordered(order_id, quantity, part_id) select ?, ?, id from parts where part_number = ?',
+            orderParams = [orderInfo.order_number, orderInfo.order_date, orderInfo.total_sale, orderInfo.customer],
+            partsOrdered = orderInfo.parts_ordered;
+
+        connection.query(orderQuery, orderParams, function (err, rows) {
+            if(rollbackOnError(err, res)) { return }
+            orderId = rows.insertId;
+
+            for (var i = 0; i < partsOrdered.length; i++) {
+                var partOrdered = partsOrdered[i],
+                    partParams = [orderId, partOrdered.quantity, partOrdered.part];
+
+                connection.query(partsOrderedQuery, partParams, function (err, rows) {
+                        rollbackOnError(err, res);
+                    });
+            }
+
+            connection.commit(function(err, rows) {
+                if(rollbackOnError(err, res)) { return }
+                try {
+                    res.type('application/json');
+                    res.send({
+                        result: 'success',
+                        err: '',
+                        json: {'id': orderId}
+                    });
+
+                } catch (e) {
+                    console.error('Response probably already sent for error');
+                }
+            })
+        });
     });
 });
 
