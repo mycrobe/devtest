@@ -15,7 +15,7 @@ app.use(express.bodyParser());
 /**
  * Object containing allowed table names
  */
-var tables = { 'people': true, 'categories' : true, 'orders': true, 'parts_ordered': true, 'parts': true};
+var tables = { 'people': true, 'part_types' : true, 'orders': true, 'parts_ordered': true, 'parts': true};
 
 /**
  * Check if the table name supplied is disallowed.
@@ -113,10 +113,6 @@ app.get('/:table/:id?', function(req,res){
             }
         };
 
-    if(handleError("TABLE_NAME", tableNameInvalid(tableName), res, true)) {
-        return;
-    }
-
     if(id) {
        query += ' where id = ?'
     }
@@ -128,8 +124,13 @@ app.get('/:table/:id?', function(req,res){
 
 app.post('/:table', function(req,res) {
     var rowInfo = req.body,
-        query = 'insert into people set ?',
+        tableName = req.params.table,
+        query = 'insert into ' + tableName + ' set ?',
         getResponseJsonFromSqlResults = function(result) { return {'id': result.insertId} };
+
+    if(handleError("TABLE_NAME", tableNameInvalid(tableName), res, true)) {
+        return;
+    }
 
     doQueryAndRespond(res, query, rowInfo, getResponseJsonFromSqlResults);
 });

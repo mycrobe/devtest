@@ -7,15 +7,14 @@ drop table if exists parts;
 
 create table parts (
   id integer not null auto_increment,
-  type integer not null,
+  type varchar(50) not null,
   part_number varchar(50) character set utf8 not null unique,
   quantity_in_stock integer signed not null default 0,
   cost decimal(15,2) unsigned not null,
   retail_price decimal(15,2) unsigned not null,
   original_part_number varchar(50) character set utf8 default null comment 'if part_number is changed to ensure uniqueness, the original part number is stored here.',
   description text character set utf8 default null,
-  primary key (id),
-  foreign key (category_id) references part_type(id)
+  primary key (id)
 );
 
 create table people (
