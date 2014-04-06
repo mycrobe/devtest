@@ -33,7 +33,8 @@ create table orders (
   id integer not null auto_increment,
   customer_id integer not null,
   order_number varchar(50) character set utf8 not null unique,
-  date_ordered datetime not null default now(),
+  order_date datetime not null,
+  total_sale decimal(15,2) unsigned not null,
   primary key (id),
   foreign key (customer_id) references people(id)
 );

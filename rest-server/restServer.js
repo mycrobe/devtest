@@ -3,11 +3,18 @@ var app = express();
 
 var mysql = require('mysql');
 var pool = mysql.createPool({
-    host     : 'localhost',
-    user     : 'factory',
-    password : 'fact0ry',
-    database : 'factory'
+    host: 'localhost',
+    user: 'factory',
+    password: 'fact0ry',
+    database: 'factory'
 });
+
+//var Q = require("q");
+//var promisedQuery = function (connection, query, queryParams) {
+//    var deferred = Q.defer();
+//    connection.query(query, queryParams, deferred.resolve);
+//    return deferred.promise;
+//};
 
 // to parse POSTed bodies, whether JSON, urlencoded or multipart
 app.use(express.bodyParser());
@@ -15,7 +22,7 @@ app.use(express.bodyParser());
 /**
  * Object containing allowed table names
  */
-var tables = { 'people': true, 'part_types' : true, 'orders': true, 'parts_ordered': true, 'parts': true};
+var tables = { 'people': true, 'part_types': true, 'orders': true, 'parts_ordered': true, 'parts': true};
 
 /**
  * Check if the table name supplied is disallowed.
@@ -36,18 +43,23 @@ function tableNameInvalid(table) {
  * @param type a string describing the type of error, e.g. "CONNECTION" or "QUERY"
  * @param err the error object. For maximum utlity, this should contain a code and a message
  * @param res the response object to which the error will be written
+ * @param userError evaluated as boolean. True -> 403 error; False -> 503 error
  * @returns {boolean} returns true if an error was returned.
  */
 function handleError(type, err, res, userError) {
-    if(err) {
+    if (err) {
         console.error(type, ' error', err);
-        res.statusCode = userError ? 403 : 503;
-        res.type('application/json');
-        res.send({
-            result: 'error',
-            code: err.code,
-            message: err.message
-        });
+        try {
+            res.statusCode = userError ? 403 : 503;
+            res.type('application/json');
+            res.send({
+                result: 'error',
+                code: err.code,
+                message: err.message
+            });
+        } catch(e) {
+            console.error('Response probably already sent for error');
+        }
     }
     return !!err;
 }
@@ -89,7 +101,7 @@ function doQueryAndRespond(res, query, queryParams, getResponseJsonFromSqlResult
  * @param callback the function to call with the results. (This is passed directly to connection.query)
  */
 function doQuery(res, query, queryParams, callback) {
-    pool.getConnection(function(err, connection) {
+    pool.getConnection(function (err, connection) {
         if (!handleError("CONNECTION", err, res)) {
             connection.query(query, queryParams, callback);
         }
@@ -99,11 +111,11 @@ function doQuery(res, query, queryParams, callback) {
 
 // very thin REST layer over schema for reading... for now
 // if id parameter is supplied, get just that row, otherwise list all
-app.get('/:table/:id?', function(req,res){
+app.get('/:table/:id?', function (req, res) {
     var tableName = req.params.table,
         id = req.params.id,
-        query = 'select * from '+ tableName,
-        getResponseBodyFromQueryResults = function(rows, fields) {
+        query = 'select * from ' + tableName,
+        getResponseBodyFromQueryResults = function (rows, fields) {
             return {
                 result: 'success',
                 err: '',
@@ -113,8 +125,8 @@ app.get('/:table/:id?', function(req,res){
             }
         };
 
-    if(id) {
-       query += ' where id = ?'
+    if (id) {
+        query += ' where id = ?'
     }
     query += ' order by id asc';
 
@@ -122,99 +134,92 @@ app.get('/:table/:id?', function(req,res){
 
 });
 
-app.post('/orders', function(req, res) {
-    var orderInfo = req.body,
-        queriesToExecute = [],
-        orderQuery = 'insert into order set ?',
-        partsOrderedQuery = 'insert into parts_ordered set ?',
-        tableName = 'orders',
-        customerName = orderInfo.customer,
-        partsOrdered = orderInfo.parts_ordered;
-
-    delete orderInfo.customer;
-    delete orderInfo.partsOrdered;
-
-    lookupCustomerId(customerName, function(customer_id) {
-
-        pool.beginTransaction(function(err) {
-            if(handleError('TRANSACTION', err, res)) { return }
-
-            pool.query(orderQuery, orderInfo, function(err, result) {
-                if(handleError('QUERY', err, res)) { pool.rollback(); }
-                var orderId = result.insertId;
-
-                for(var i = 0; i < partsOrdered.length; i++) {
-                    var partOrdered = partsOrdered[i];
-                    partOrdered.order_id = orderId;
-                    pool.query(partsOrderedQuery, partOrdered, function(err) {
-                        if(handleError('QUERY', err, res)) { pool.rollback(); };
-                    });
-                }
-
-                pool.commit(function(err) {
-                    if (err) {
-                        connection.rollback(function() {
-                            throw err;
-                        });
+app.post('/orders', function (req, res) {
+    var orderId;
+    pool.getConnection(function (err, connection) {
+        if (handleError('CONNECTION', err, res)) {
+            return
+        }
+        function rollbackOnError(err, res) {
+            if (err) {
+                connection.rollback(function (e, rows) {
+                    if(e) {
+                        console.log("Could not roll back :" + e.message );
                     }
-                    console.log('success!');
+                    else {
+                        console.log("Rolled back. Affected rows: " + rows.affectedRows);
+                    }
                 });
+            }
+            return handleError('TRANSACTION-QUERY', err, res);
+        }
+        function notSingleResult(rows, res) {
+            
+        }
+
+//        try {
+            connection.beginTransaction(function (err) {
+                if(rollbackOnError(err, res)) { return }
+                var orderInfo = req.body,
+                    orderQuery = 'insert into orders(order_number, order_date, total_sale, customer_id) select ?, ?, ?, id from people where name = ?',
+                    partsOrderedQuery = 'insert into parts_ordered(order_id, quantity, part_id) select ?, ?, id from parts where part_number = ?',
+                    orderParams = [orderInfo.order_number, orderInfo.order_date, orderInfo.total_sale, orderInfo.customer],
+                    partsOrdered = orderInfo.parts_ordered;
+
+                connection.query(orderQuery, orderParams, function (err, rows) {
+                    connection.release();
+                    if(rollbackOnError(err, res)) { return }
+                    orderId = rows.insertId;
+
+                    for (var i = 0; i < partsOrdered.length; i++) {
+                        var partOrdered = partsOrdered[i],
+                            partParams = [orderId, partOrdered.quantity, partOrdered.part];
+
+                        connection.query(partsOrderedQuery, partParams, function (err, rows) {
+                                rollbackOnError(err, res);
+                            });
+                    }
+
+                    connection.commit(function(err, rows) {
+                        if(rollbackOnError(err, res)) { return }
+                        try {
+                            res.type('application/json');
+                            res.send({
+                                result: 'success',
+                                err: '',
+                                json: {'id': orderId}
+                            });
+
+                        } catch (e) {
+                            console.error('Response probably already sent for error');
+                        }
+                    })
+                });
+//                });
             });
-        });
-
+            connection.release();
+//        } catch (err) {
+//            handleError('TRANSACTION', err, res);
+//        } finally {
+//            connection.release();
+//        }
     });
-
-
-
 });
 
-app.post('/:table', function(req,res) {
+app.post('/:table', function (req, res) {
     var rowInfo = req.body,
         tableName = req.params.table,
         query = 'insert into ' + tableName + ' set ?',
-        getResponseJsonFromSqlResults = function(result) { return {'id': result.insertId} };
+        getResponseJsonFromSqlResults = function (result) {
+            return {'id': result.insertId}
+        };
 
-    if(handleError("TABLE_NAME", tableNameInvalid(tableName), res, true)) {
+    if (handleError("TABLE_NAME", tableNameInvalid(tableName), res, true)) {
         return;
     }
 
     doQueryAndRespond(res, query, rowInfo, getResponseJsonFromSqlResults);
 });
-
-//app.put('/:table/:id', function(req,res) {
-//    var tableName = req.params.table,
-//        id = req.params.id,
-//        updates = req.body;
-//
-//    if(handleError('TABLE_NAME', tableNameInvalid(tableName), res)) { return }
-//
-//    doQuery(res, 'select * from ' + tableName + ' where id = ?', id, function(err, rows, fields) {
-//        if(handleError("QUERY", err, res)) { return }
-//        if(rows.length == 0) {
-//            handleError("QUERY", {code: 'NOT_FOUND', message: 'Did not find entity with id ' + id + ' in ' + tableName}, res);
-//            return;
-//        }
-//        if(rows.length > 1) {
-//            handleError("QUERY", {code: 'WTF', message: 'Found > 1 entity with id ' + id + ' in ' + tableName}, res);
-//            return;
-//        }
-//
-//        var entity = rows[0];
-//
-//        fields.map( function(field) {
-//            if(updates[field.name]) {
-//                entity[field] = updates[field];
-//            }
-//        });
-//
-//
-//    });
-//});
-
-//app.get('/:table/:id', function(req,res){});
-//app.post('/:table', function(req,res){});
-//app.put('/:table/:id', function(req,res){});
-//app.delete('/:table/:id', function(req,res){});
 
 app.listen(3000);
 console.log("Rest server running on port 3000 ( perhaps http://localhost:3000 )");
