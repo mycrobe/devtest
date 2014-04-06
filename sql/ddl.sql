@@ -4,17 +4,10 @@ drop table if exists parts_ordered;
 drop table if exists orders;
 drop table if exists people;
 drop table if exists parts;
-drop table if exists categories;
-
-create table part_types (
-  id integer not null auto_increment,
-  name varchar(100) character set utf8 not null unique comment 'category name',
-  primary key (id)
-);
 
 create table parts (
   id integer not null auto_increment,
-  type_id integer not null,
+  type integer not null,
   part_number varchar(50) character set utf8 not null unique,
   quantity_in_stock integer signed not null default 0,
   cost decimal(15,2) unsigned not null,
