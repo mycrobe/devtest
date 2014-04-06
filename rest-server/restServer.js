@@ -38,13 +38,14 @@ function tableNameInvalid(table) {
  * @param res the response object to which the error will be written
  * @returns {boolean} returns true if an error was returned.
  */
-function handleError(type, err, res) {
+function handleError(type, err, res, userError) {
     if(err) {
         console.error(type, ' error', err);
-        res.statusCode = 503;
+        res.statusCode = userError ? 403 : 503;
+        res.type('application/json');
         res.send({
             result: 'error',
-            err: err.code,
+            code: err.code,
             message: err.message
         });
     }
@@ -65,7 +66,8 @@ function handleError(type, err, res) {
  */
 function doQueryAndRespond(res, query, queryParams, getResponseJsonFromSqlResults) {
     doQuery(res, query, queryParams, function (err, rows, fields) {
-        if (!handleError("QUERY", err, res)) {
+        if (!handleError("QUERY", err, res, true)) {
+            res.type('application/json');
             res.send({
                 result: 'success',
                 err: '',
@@ -111,7 +113,7 @@ app.get('/:table/:id?', function(req,res){
             }
         };
 
-    if(handleError("TABLE_NAME", tableNameInvalid(tableName), res)) {
+    if(handleError("TABLE_NAME", tableNameInvalid(tableName), res, true)) {
         return;
     }
 
@@ -131,6 +133,41 @@ app.post('/:table', function(req,res) {
 
     doQueryAndRespond(res, query, rowInfo, getResponseJsonFromSqlResults);
 });
+
+//app.put('/:table/:id', function(req,res) {
+//    var tableName = req.params.table,
+//        id = req.params.id,
+//        updates = req.body;
+//
+//    if(handleError('TABLE_NAME', tableNameInvalid(tableName), res)) { return }
+//
+//    doQuery(res, 'select * from ' + tableName + ' where id = ?', id, function(err, rows, fields) {
+//        if(handleError("QUERY", err, res)) { return }
+//        if(rows.length == 0) {
+//            handleError("QUERY", {code: 'NOT_FOUND', message: 'Did not find entity with id ' + id + ' in ' + tableName}, res);
+//            return;
+//        }
+//        if(rows.length > 1) {
+//            handleError("QUERY", {code: 'WTF', message: 'Found > 1 entity with id ' + id + ' in ' + tableName}, res);
+//            return;
+//        }
+//
+//        var entity = rows[0];
+//
+//        fields.map( function(field) {
+//            if(updates[field.name]) {
+//                entity[field] = updates[field];
+//            }
+//        });
+//
+//
+//    });
+//});
+
+//app.get('/:table/:id', function(req,res){});
+//app.post('/:table', function(req,res){});
+//app.put('/:table/:id', function(req,res){});
+//app.delete('/:table/:id', function(req,res){});
 
 app.listen(3000);
 console.log("Rest server running on port 3000 ( perhaps http://localhost:3000 )");

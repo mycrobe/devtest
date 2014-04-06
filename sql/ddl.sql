@@ -31,7 +31,7 @@ create table people (
   street varchar(100) character set utf8,
   city varchar(50) character set utf8,
   zip varchar(10) character set utf8,
-  state_or_province varchar(20) character set utf8,
+  state_or_province varchar(40) character set utf8,
   phone varchar(30) character set utf8,
   email varchar(100) character set utf8 not null unique,
   primary key (id)
