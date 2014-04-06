@@ -6,7 +6,7 @@ drop table if exists people;
 drop table if exists parts;
 drop table if exists categories;
 
-create table categories (
+create table part_types (
   id integer not null auto_increment,
   name varchar(100) character set utf8 not null unique comment 'category name',
   primary key (id)
@@ -14,15 +14,15 @@ create table categories (
 
 create table parts (
   id integer not null auto_increment,
-  category_id integer not null,
+  type_id integer not null,
   part_number varchar(50) character set utf8 not null unique,
-  stock_count integer signed not null default 0,
+  quantity_in_stock integer signed not null default 0,
   cost decimal(15,2) unsigned not null,
   retail_price decimal(15,2) unsigned not null,
   original_part_number varchar(50) character set utf8 default null comment 'if part_number is changed to ensure uniqueness, the original part number is stored here.',
   description text character set utf8 default null,
   primary key (id),
-  foreign key (category_id) references categories(id)
+  foreign key (category_id) references part_type(id)
 );
 
 create table people (
