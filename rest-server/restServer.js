@@ -122,6 +122,52 @@ app.get('/:table/:id?', function(req,res){
 
 });
 
+app.post('/orders', function(req, res) {
+    var orderInfo = req.body,
+        queriesToExecute = [],
+        orderQuery = 'insert into order set ?',
+        partsOrderedQuery = 'insert into parts_ordered set ?',
+        tableName = 'orders',
+        customerName = orderInfo.customer,
+        partsOrdered = orderInfo.parts_ordered;
+
+    delete orderInfo.customer;
+    delete orderInfo.partsOrdered;
+
+    lookupCustomerId(customerName, function(customer_id) {
+
+        pool.beginTransaction(function(err) {
+            if(handleError('TRANSACTION', err, res)) { return }
+
+            pool.query(orderQuery, orderInfo, function(err, result) {
+                if(handleError('QUERY', err, res)) { pool.rollback(); }
+                var orderId = result.insertId;
+
+                for(var i = 0; i < partsOrdered.length; i++) {
+                    var partOrdered = partsOrdered[i];
+                    partOrdered.order_id = orderId;
+                    pool.query(partsOrderedQuery, partOrdered, function(err) {
+                        if(handleError('QUERY', err, res)) { pool.rollback(); };
+                    });
+                }
+
+                pool.commit(function(err) {
+                    if (err) {
+                        connection.rollback(function() {
+                            throw err;
+                        });
+                    }
+                    console.log('success!');
+                });
+            });
+        });
+
+    });
+
+
+
+});
+
 app.post('/:table', function(req,res) {
     var rowInfo = req.body,
         tableName = req.params.table,
