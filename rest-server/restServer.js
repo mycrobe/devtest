@@ -100,33 +100,78 @@ function getQuerySelect(tableName) {
         case 'orders':
             return 'select o.*, c.name customer from orders o inner join people c on o.customer_id = c.id';
         default:
-            return mysql.format('select * from ??', tableName);
+            return mysql.format('select * from ?? o', tableName);
     }
 }
+
+/**
+ * Get a useful response without needed further queries.
+ */
+app.get('/orders/:id', function(req, res) {
+    var id = req.params.id,
+        query = 'select o.*, c.name customer, p.part_number, p.retail_price, po.quantity, po.part_id ' +
+            'from orders o ' +
+            'inner join people c on o.customer_id = c.id ' +
+            'inner join parts_ordered po on po.order_id = o.id ' +
+            'inner join parts p on p.id = po.part_id ' +
+            'where o.id = ? order by o.id asc';
+
+    doQueryAndRespond(res, query, id, function (rows, fields) {
+        var order = {};
+
+        if(rows && rows.length) {
+            var first = rows[0];
+            order = {
+                id:first.id,
+                order_number:first.order_number,
+                customer_id:first.customer_id,
+                customer:first.customer,
+                order_date:first.order_date,
+                total_sale:first.total_sale,
+                parts_ordered:[]
+            };
+            for(var i = 0; i < rows.length; i++) {
+                var row = rows[i];
+                order.parts_ordered.push({
+                    part_number:row.part_number,
+                    quantity:row.quantity,
+                    retail_price:row.retail_price,
+                    part_id:row.part_id
+                });
+            }
+        }
+
+        return {
+            result: 'success',
+            err: '',
+            rows: [order],
+            fields: fields,
+            length: 1
+        }
+    });
+});
 
 // very thin REST layer over schema for reading... for now
 // if id parameter is supplied, get just that row, otherwise list all
 app.get('/:table/:id?', function (req, res) {
     var tableName = req.params.table,
         id = req.params.id,
-        query = getQuerySelect(tableName),
-        getResponseBodyFromQueryResults = function (rows, fields) {
-            return {
-                result: 'success',
-                err: '',
-                rows: rows,
-                fields: fields,
-                length: rows.length
-            }
-        };
+        query = getQuerySelect(tableName);
 
     if (id) {
-        query += ' where id = ?'
+        query += ' where o.id = ?'
     }
-    query += ' order by id asc';
+    query += ' order by o.id asc';
 
-    doQueryAndRespond(res, query, id, getResponseBodyFromQueryResults);
-
+    doQueryAndRespond(res, query, id, function (rows, fields) {
+        return {
+            result: 'success',
+            err: '',
+            rows: rows,
+            fields: fields,
+            length: rows.length
+        }
+    });
 });
 
 app.post('/orders', function (req, res) {

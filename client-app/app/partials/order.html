@@ -1,0 +1,39 @@
+<h2>Order {{order.order_number}}</h2>
+
+<div class="col-lg-4">
+    <table class="table">
+        <tbody>
+        <tr>
+            <td>Customer</td>
+            <td><strong>{{order.customer}}</strong></td>
+        </tr>
+        <tr>
+            <td>Total Sale</td>
+            <td><strong>{{order.total_sale | currency:'$'}}</strong></td>
+        </tr>
+        <tr>
+            <td>Date</td>
+            <td><strong>{{order.order_date | date:'yyyy-MM-dd'}}</strong></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<table class="table table-striped" id="searchTextResults">
+    <thead>
+    <tr>
+        <th>Part Number</th>
+        <th>Quantity Ordered</th>
+        <th>Unit Price</th>
+        <th>Subtotal</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr ng-repeat="part_ordered in order.parts_ordered">
+        <td>{{part_ordered.part_number}}</td>
+        <td>{{part_ordered.quantity}}</td>
+        <td>{{part_ordered.retail_price | currency:"$" }}</td>
+        <td>{{part_ordered.retail_price * part_ordered.quantity | currency:"$" }}</td>
+    </tr>
+    </tbody>
+</table>

@@ -1,25 +1,32 @@
-
-<div class="input-group space1">
-    <input placeholder="Search" class="form-control" id="searchText" ng-model="searchText">
-    <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+<div class="row space1">
+    <div class="col-lg-8">
+        <div class="input-group">
+            <input placeholder="Search" class="form-control" id="searchText" ng-model="searchText">
+            <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="input-group">
+            <a class="btn btn-primary" ng-mousedown="csv.generate()" ng-href="{{ csv.link() }}" download="orders.csv">Export to CSV</a>
+        </div>
+    </div>
 </div>
-<table class="table table-striped" id="searchTextResults">
-    <thead>
-    <tr>
-        <th>Order Number</th>
-        <th>Customer</th>
-        <th>Order Date</th>
-        <th>Total Sale</th>
-    </tr>
-    </thead>
+<table ng-table="tableParams" class="table" export-csv="csv">
     <tbody>
-    <tr popover="{{hello}}" popover-trigger="focus" ng-repeat="order in orders | filter:searchText" ng-click="">
-        <td>{{order.order_number}}</td>
-        <td>{{order.customer}}</td>
-        <td>{{order.order_date | date:'yyyy-MM-dd'}}</td>
-        <td>{{order.total_sale | currency:'$' }}</td>
+    <tr ng-repeat="order in $data | filter:searchText"><!--Order Number	Customer	Order Date	Total Sale-->
+        <!--<td data-title="'Order Number'" filter="{ 'name': 'text' }" sortable="order_number">-->
+        <td data-title="'Order Number'">
+            <a href="#/orders/{{order.id}}">{{order.order_number}}</a>
+        </td>
+        <td data-title="'Customer'">
+            {{order.customer}}
+        </td>
+        <td data-title="'Order Date'">
+            {{order.order_date | date:'yyyy-MM-dd'}}
+        </td>
+        <td data-title="'Total Sale'">
+            {{order.total_sale | currency:'$'}}
+        </td>
     </tr>
     </tbody>
-
-    <div
 </table>
