@@ -1,1 +1,24 @@
-<p>This is the partial for view 1. Hello {{people.length}} {{hello}}</p>
+<div class="report">
+    <div class="input-group space1">
+        <input placeholder="Search" class="form-control" id="searchText" ng-model="searchText">
+        <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+    </div>
+    <table class="table table-striped" id="searchTextResults">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Address</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="person in people | filter:searchText">
+            <td>{{person.name}}</td>
+            <td>{{person.phone}}</td>
+            <td><a href="mailto:{{person.email}}">{{person.email}}</a></td>
+            <td class="small">{{person.street}}<br>{{person.city}}<br>{{person.zip}} {{person.state}}</td>
+        </tr>
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,25 @@
+
+<div class="input-group space1">
+    <input placeholder="Search" class="form-control" id="searchText" ng-model="searchText">
+    <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+</div>
+<table class="table table-striped" id="searchTextResults">
+    <thead>
+    <tr>
+        <th>Order Number</th>
+        <th>Customer</th>
+        <th>Order Date</th>
+        <th>Total Sale</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr popover="{{hello}}" popover-trigger="focus" ng-repeat="order in orders | filter:searchText" ng-click="">
+        <td>{{order.order_number}}</td>
+        <td>{{order.customer}}</td>
+        <td>{{order.order_date | date:'yyyy-MM-dd'}}</td>
+        <td>{{order.total_sale | currency:'$' }}</td>
+    </tr>
+    </tbody>
+
+    <div
+</table>

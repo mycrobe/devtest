@@ -95,12 +95,21 @@ function doQueryAndRespond(res, query, queryParams, getResponseJsonFromSqlResult
     });
 }
 
+function getQuerySelect(tableName) {
+    switch(tableName) {
+        case 'orders':
+            return 'select o.*, c.name customer from orders o inner join people c on o.customer_id = c.id';
+        default:
+            return mysql.format('select * from ??', tableName);
+    }
+}
+
 // very thin REST layer over schema for reading... for now
 // if id parameter is supplied, get just that row, otherwise list all
 app.get('/:table/:id?', function (req, res) {
     var tableName = req.params.table,
         id = req.params.id,
-        query = 'select * from ' + tableName,
+        query = getQuerySelect(tableName),
         getResponseBodyFromQueryResults = function (rows, fields) {
             return {
                 result: 'success',

@@ -1,1 +1,26 @@
-<p>This is the partial for view 1. Hello {{parts.length}} {{hello}}</p>
+<div class="input-group space1">
+    <input placeholder="Search" class="form-control" id="searchText" ng-model="searchText">
+    <span class="input-group-addon"><span class="glyphicon glyphicon-search"></span></span>
+</div>
+<table class="table table-striped" id="searchTextResults">
+    <thead>
+    <tr>
+        <th>Part Number</th>
+        <th>Type</th>
+        <th>Quantity in Stock</th>
+        <th>Cost</th>
+        <th>Retail Price</th>
+        <th>Description</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr ng-repeat="part in parts | filter:searchText">
+        <td>{{part.part_number}}</td>
+        <td>{{part.type}}</td>
+        <td>{{part.quantity_in_stock}}</td>
+        <td>{{part.cost | currency:"$" }}</td>
+        <td>{{part.retail_price | currency:"$" }}</td>
+        <td class="small" title="{{part.description}}">{{part.description | truncate:60}}</td>
+    </tr>
+    </tbody>
+</table>

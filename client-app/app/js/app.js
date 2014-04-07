@@ -6,11 +6,13 @@ angular.module('myApp', [
   'myApp.filters',
   'myApp.services',
   'myApp.directives',
-  'myApp.controllers'
+  'myApp.controllers',
+  'ngTable'
 ]).
 config(['$routeProvider', function($routeProvider) {
   $routeProvider.when('/customers', {templateUrl: 'partials/customers.html', controller: 'CustomersController'});
   $routeProvider.when('/parts', {templateUrl: 'partials/parts.html', controller: 'PartsController'});
+  $routeProvider.when('/orders', {templateUrl: 'partials/orders.html', controller: 'OrdersController'});
   $routeProvider.otherwise({redirectTo: '/customers'});
 }]).
 // see http://better-inter.net/enabling-cors-in-angular-js/
