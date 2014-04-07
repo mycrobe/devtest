@@ -6,5 +6,8 @@
         "express": "3.x",
         "mysql": "2.x",
         "q": "1.x"
+    },
+    "scripts": {
+        "start": "node restServer.js"
     }
 }

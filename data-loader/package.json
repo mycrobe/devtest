@@ -5,6 +5,8 @@
     "dependencies": {
         "node-rest-client": "0.8.x",
         "csv": "0.3.x"
-//        "node-fs": "0.1.x"
+    },
+    "scripts": {
+        "start": "node dataLoader.js"
     }
 }
