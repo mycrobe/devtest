@@ -12,6 +12,19 @@ var connection = mysql.createConnection({
 // to parse POSTed bodies, whether JSON, urlencoded or multipart
 app.use(express.bodyParser());
 
+// allow CORS, per http://stackoverflow.com/questions/16046364/origin-http-localhost-is-not-allowed-by-access-control-allow-origin?rq=1
+var allowCrossDomain = function(req, res, next) {
+    console.log("Request: %s %s", req.method, req.url);
+    res.header('Access-Control-Allow-Origin', "*");
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTION');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+};
+
+app.configure(function() {
+    app.use(allowCrossDomain);
+});
+
 /**
  * Object containing allowed table names
  */
